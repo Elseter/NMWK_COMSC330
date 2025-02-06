@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS classes (
 );
 
 -- Groups Table (Collection of classes)
-CREATE TABLE IF NOT EXISTS groups (
+CREATE TABLE IF NOT EXISTS `groups` (
     group_id INT AUTO_INCREMENT PRIMARY KEY,
     group_name VARCHAR(255) NOT NULL
 );
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS class_group_mapping (
     group_id INT,
     PRIMARY KEY (class_id, group_id),
     FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE,
-    FOREIGN KEY (group_id) REFERENCES groups(group_id) ON DELETE CASCADE
+    FOREIGN KEY (group_id) REFERENCES `groups`(group_id) ON DELETE CASCADE
 );
 
 -- Grades Table (Ties students to class sessions with their grades)
