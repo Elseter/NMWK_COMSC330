@@ -1,1 +1,1 @@
-TEMP README
+I haven't tested this one yet, so no promises on how well it will work. But this should provide the template for a basic schema for MySQL. The docker-compose file, when run, will spin up a docker that will contain a MySQL instance. It will also pass in the schema.sql file for it to run on startup which will create the default tables in the database. Will work on getting a script to run all of these at a later point 
