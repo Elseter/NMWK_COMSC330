@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS classes (
 -- Groups Table (Collection of classes)
 CREATE TABLE IF NOT EXISTS `groups` (
     group_id INT AUTO_INCREMENT PRIMARY KEY,
-    group_name VARCHAR(255) NOT NULL
+    group_name VARCHAR(255) NOT NULL,
+    group_gpa DECIMAL(5, 2) DEFAULT NULL
 );
 
 -- Mapping Table for Class-Group Relationship
@@ -189,6 +190,129 @@ END $$
 DELIMITER ;
 
 
+-- DELIMITERS FOR GROUP GPA CALCULATIONS
+-- Trigger to update group GPA after a class GPA is updated
+DELIMITER $$
+
+CREATE TRIGGER update_group_gpa_after_class_gpa_update
+AFTER UPDATE ON classes
+FOR EACH ROW
+BEGIN
+    DECLARE new_group_gpa DECIMAL(5, 2);
+
+    -- Calculate the new weighted GPA for the group
+    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
+    INTO new_group_gpa
+    FROM classes c
+    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
+    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+
+    -- Update the group GPA
+    UPDATE `groups`
+    SET group_gpa = new_group_gpa
+    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+END $$
+
+DELIMITER ;
+
+-- Trigger to update group GPA after a grade is inserted, which may affect class GPA
+DELIMITER $$
+
+CREATE TRIGGER update_group_gpa_after_grade_insert
+AFTER INSERT ON grades
+FOR EACH ROW
+BEGIN
+    DECLARE new_group_gpa DECIMAL(5, 2);
+
+    -- Calculate the new weighted GPA for the group
+    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
+    INTO new_group_gpa
+    FROM classes c
+    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
+    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+
+    -- Update the group GPA
+    UPDATE `groups`
+    SET group_gpa = new_group_gpa
+    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+END $$
+
+DELIMITER ;
+
+-- Trigger to update group GPA after a grade is updated, which may affect class GPA
+DELIMITER $$
+
+CREATE TRIGGER update_group_gpa_after_grade_update
+AFTER UPDATE ON grades
+FOR EACH ROW
+BEGIN
+    DECLARE new_group_gpa DECIMAL(5, 2);
+
+    -- Calculate the new weighted GPA for the group
+    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
+    INTO new_group_gpa
+    FROM classes c
+    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
+    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+
+    -- Update the group GPA
+    UPDATE `groups`
+    SET group_gpa = new_group_gpa
+    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+END $$
+
+DELIMITER ;
+
+-- Trigger to update group GPA after a grade is deleted, which may affect class GPA
+DELIMITER $$
+
+CREATE TRIGGER update_group_gpa_after_grade_delete
+AFTER DELETE ON grades
+FOR EACH ROW
+BEGIN
+    DECLARE new_group_gpa DECIMAL(5, 2);
+
+    -- Calculate the new weighted GPA for the group
+    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
+    INTO new_group_gpa
+    FROM classes c
+    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
+    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = OLD.class_id);
+
+    -- Update the group GPA
+    UPDATE `groups`
+    SET group_gpa = new_group_gpa
+    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = OLD.class_id);
+END $$
+
+DELIMITER ;
+
+
+-- Trigger to update group GPA when a class is added to the group
+DELIMITER $$
+
+CREATE TRIGGER update_group_gpa_after_class_added
+AFTER INSERT ON class_group_mapping
+FOR EACH ROW
+BEGIN
+    DECLARE new_group_gpa DECIMAL(5, 2);
+
+    -- Calculate the new weighted GPA for the group
+    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
+    INTO new_group_gpa
+    FROM classes c
+    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
+    WHERE cgm.group_id = NEW.group_id;
+
+    -- Update the group GPA
+    UPDATE `groups`
+    SET group_gpa = new_group_gpa
+    WHERE group_id = NEW.group_id;
+END $$
+
+DELIMITER ;
+
+
 -- Test Data (Students, Classes, Grades)
 
 -- Insert Students
@@ -205,6 +329,17 @@ INSERT INTO classes (class_name, credit_hours) VALUES
     ('History 101', 3),
     ('Computer Science 101', 4);
 
+-- Insert Groups
+INSERT INTO `groups` (group_name) VALUES
+    ('Group A'),
+    ('Group B');
+
+-- Insert Class-Group Mappings
+INSERT INTO class_group_mapping (class_id, group_id) VALUES
+    (1, 1),  -- Math 101 -> Group A
+    (2, 1),  -- History 101 -> Group A
+    (3, 2);  -- Computer Science 101 -> Group B
+
 -- Insert Grades (student_id, class_id, grade)
 INSERT INTO grades (student_id, class_id, grade) VALUES
     ('S001', 1, 3.5),
@@ -217,5 +352,4 @@ INSERT INTO grades (student_id, class_id, grade) VALUES
     ('S003', 2, 1.6),
     ('S004', 2, 4.0),
     ('S005', 2, 2.0);
-
 
