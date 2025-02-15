@@ -40,9 +40,8 @@ const router = express.Router();
   * @throws {Object} error - If there is an issue with the database query or response, a 500 status code and error message are returned.
   *
   */
-router.get('/fetch-all-student-info', async(req, res) =>{
-  try{
-
+router.get('/fetch-all-student-info', async (req, res) => {
+  try {
     const query = `
       SELECT 
         s.student_id, 
@@ -51,7 +50,8 @@ router.get('/fetch-all-student-info', async(req, res) =>{
         s.cumulative_gpa,
         c.class_name,
         c.credit_hours,
-        g.grade
+        g.letter_grade,
+        g.numerical_grade
       FROM students s
       LEFT JOIN grades g ON s.student_id = g.student_id
       LEFT JOIN classes c ON g.class_id = c.class_id
@@ -61,11 +61,9 @@ router.get('/fetch-all-student-info', async(req, res) =>{
     const [rows, fields] = await db.execute(query);
     const students = [];
 
-    // Loop through all of the returned students from the database
-    rows.forEach(row =>{
-
+    rows.forEach(row => {
       let student = students.find(s => s.student_id === row.student_id);
-      if (!student){
+      if (!student) {
         student = {
           student_id: row.student_id,
           first_name: row.first_name,
@@ -76,22 +74,22 @@ router.get('/fetch-all-student-info', async(req, res) =>{
         students.push(student);
       }
 
-      // Add all of the grades to each student 
       student.grades.push({
         class_name: row.class_name,
         credit_hours: row.credit_hours,
-        grade: row.grade
+        letter_grade: row.letter_grade,
+        numerical_grade: row.numerical_grade
       });
     });
 
-    // Return the filled students list 
     res.json(students);
 
   } catch (error) {
-      console.error('Error fetching student details:', error);
-      res.status(500).json({ message: 'Error fetching student details', error });
+    console.error('Error fetching student details:', error);
+    res.status(500).json({ message: 'Error fetching student details', error });
   }
 });
+
 
 /**
  * Route handler to fetch all class information, including student details and grades, without group associations.
@@ -131,7 +129,8 @@ router.get('/fetch-all-class-info', async (req, res) => {
         s.student_id,
         s.first_name,
         s.last_name,
-        g.grade
+        g.letter_grade,
+        g.numerical_grade
       FROM classes c
       LEFT JOIN grades g ON c.class_id = g.class_id
       LEFT JOIN students s ON g.student_id = s.student_id
@@ -141,7 +140,6 @@ router.get('/fetch-all-class-info', async (req, res) => {
     const [rows, fields] = await db.execute(query);
     const classes = [];
 
-    // Loop through all of the returned classes from the database
     rows.forEach(row => {
       let classItem = classes.find(cls => cls.class_id === row.class_id);
       
@@ -156,7 +154,6 @@ router.get('/fetch-all-class-info', async (req, res) => {
         classes.push(classItem);
       }
 
-      // Add student information and grades to the class
       if (row.student_id) {
         let student = classItem.students.find(s => s.student_id === row.student_id);
         if (!student) {
@@ -164,14 +161,14 @@ router.get('/fetch-all-class-info', async (req, res) => {
             student_id: row.student_id,
             first_name: row.first_name,
             last_name: row.last_name,
-            grade: row.grade
+            letter_grade: row.letter_grade,
+            numerical_grade: row.numerical_grade
           };
           classItem.students.push(student);
         }
       }
     });
 
-    // Return the filled class list without group information
     res.json(classes);
 
   } catch (error) {
@@ -179,6 +176,7 @@ router.get('/fetch-all-class-info', async (req, res) => {
     res.status(500).json({ message: 'Error fetching class details', error });
   }
 });
+
 
 
 /**
@@ -228,7 +226,6 @@ router.get('/fetch-all-group-info', async (req, res) => {
     const [rows, fields] = await db.execute(query);
     const groups = [];
 
-    // Loop through all of the returned groups from the database
     rows.forEach(row => {
       let group = groups.find(g => g.group_id === row.group_id);
 
@@ -242,7 +239,6 @@ router.get('/fetch-all-group-info', async (req, res) => {
         groups.push(group);
       }
 
-      // Loop through the classes of the group
       let classItem = group.classes.find(cls => cls.class_id === row.class_id);
       
       if (!classItem) {
@@ -256,7 +252,6 @@ router.get('/fetch-all-group-info', async (req, res) => {
       }
     });
 
-    // Return the filled group list with associated classes
     res.json(groups);
 
   } catch (error) {
@@ -264,6 +259,7 @@ router.get('/fetch-all-group-info', async (req, res) => {
     res.status(500).json({ message: 'Error fetching group details', error });
   }
 });
+
 
 
 // SPECIFIC LOOKUPS
@@ -289,6 +285,49 @@ router.get('/fetch-all-group-info', async (req, res) => {
 // - In comparison to before, these will likely be post routes, compared to the get routes above
 //--------------------------------------------------------------------------------------------------------------
 
+// Upload from class file
+// ----------------------
+
+
+// Upload from group file
+// ----------------------
+
+
+// DATABASE DELETE ROUTES
+// - These routes provide paths for deleting existing data from the database based on user input
+// - These will also likely be post routes, as we require data from the user regarding which items they wish to remove
+//--------------------------------------------------------------------------------------------------------------
+
+
+// DATABASE MODIFICATION ROUTES
+// - These routes provide paths for modifying existing data in the database based on user input
+// - These will be post routes (I may have missed some, these were just some notable ones off the top of my head)
+// -------------------------------------------------------------------------------------------------------------
+
+
+// Modify Letter Grade to Number Grade table
+// --------------------- 
+
+
+// Modify existing grade
+// ---------------------- 
+
+
+// Modify existing class
+// ----------------------
+
+
+// Modify existing group
+// ---------------------- 
+
+
+// Add Grade to student/class
+// ----------------------
+
+
+// Add class to group
+// ----------------------
+ 
 
 // This exports the routes to be used by the main index.js file 
 module.exports = router;
