@@ -41,276 +41,137 @@ CREATE TABLE IF NOT EXISTS grades (
     grade_id INT AUTO_INCREMENT PRIMARY KEY,
     student_id VARCHAR(50),
     class_id INT,
-    grade DECIMAL(5,2) NOT NULL,
+    letter_grade VARCHAR(2) NOT NULL,
+    numerical_grade DECIMAL(5, 2),
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
     FOREIGN KEY (class_id) REFERENCES classes(class_id) ON DELETE CASCADE
 );
 
+-- Handle conversion from letter grade to numerical value 
+CREATE TABLE IF NOT EXISTS grade_conversion (
+    letter_grade VARCHAR(2) PRIMARY KEY,
+    numeric_value DECIMAL(5,2)
+);
 
--- DELIMITERS FOR AUTO GPA CALCULATIONS FOR SESSIONS (CLASSES)
--- Trigger to update average GPA after a new grade is inserted
+-- GPA Letter to number conversions 
+INSERT INTO grade_conversion (letter_grade, numeric_value) VALUES
+('A', 4.00), ('A-', 3.67), ('B+', 3.33), ('B', 3.00), ('B-', 2.67),
+('C+', 2.33), ('C', 2.00), ('C-', 1.67), ('D+', 1.33), ('D', 1.00), ('D-', 0.67),
+('F', 0.00), ('I', NULL), ('W', NULL), ('P', NULL), ('NP', NULL);
+
+
+
+-- TRIGGERS
+-- -------------------------------------------------------------------------------------------
+
 DELIMITER $$
 
-CREATE TRIGGER update_average_gpa_after_insert
+-- BEFORE INSERT Trigger to set numerical_grade before inserting a new grade
+CREATE TRIGGER before_grade_insert
+BEFORE INSERT ON grades
+FOR EACH ROW
+BEGIN
+    SET NEW.numerical_grade = (
+        SELECT numeric_value FROM grade_conversion 
+        WHERE letter_grade = NEW.letter_grade
+    );
+END$$
+
+-- BEFORE UPDATE Trigger to set numerical_grade before updating an existing grade
+CREATE TRIGGER before_grade_update
+BEFORE UPDATE ON grades
+FOR EACH ROW
+BEGIN
+    SET NEW.numerical_grade = (
+        SELECT numeric_value FROM grade_conversion 
+        WHERE letter_grade = NEW.letter_grade
+    );
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+-- Recalculate class GPA after a grade is inserted or updated
+CREATE TRIGGER after_grade_insert_update
 AFTER INSERT ON grades
 FOR EACH ROW
 BEGIN
-    DECLARE new_average DECIMAL(5,2);
-
-    -- Calculate the new average GPA for the class
-    SELECT AVG(grade) INTO new_average
-    FROM grades
-    WHERE class_id = NEW.class_id;
-
-    -- Update the average_gpa column in the classes table
+    -- Recalculate Class GPA
     UPDATE classes
-    SET average_gpa = new_average
-    WHERE class_id = NEW.class_id;
-END $$
-
-DELIMITER ;
-
--- Trigger to update average GPA after a grade is updated
-DELIMITER $$
-
-CREATE TRIGGER update_average_gpa_after_update
-AFTER UPDATE ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_average DECIMAL(5,2);
-
-    -- Calculate the new average GPA for the class
-    SELECT AVG(grade) INTO new_average
-    FROM grades
+    SET average_gpa = (
+        SELECT AVG(numerical_grade)
+        FROM grades
+        WHERE class_id = NEW.class_id AND numerical_grade IS NOT NULL
+    )
     WHERE class_id = NEW.class_id;
 
-    -- Update the average_gpa column in the classes table
-    UPDATE classes
-    SET average_gpa = new_average
-    WHERE class_id = NEW.class_id;
-END $$
+    -- Recalculate Student Cumulative GPA
+    UPDATE students
+    SET cumulative_gpa = (
+        SELECT SUM(numerical_grade * credit_hours) / SUM(credit_hours)
+        FROM grades g
+        JOIN classes c ON g.class_id = c.class_id
+        WHERE g.student_id = NEW.student_id AND numerical_grade IS NOT NULL
+    )
+    WHERE student_id = NEW.student_id;
 
-DELIMITER ;
+    -- Recalculate Group GPA
+    SET @group_gpa = (
+        SELECT AVG(numerical_grade)
+        FROM grades g
+        JOIN classes c ON g.class_id = c.class_id
+        JOIN class_group_mapping cgm ON cgm.class_id = c.class_id
+        WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id)
+        AND numerical_grade IS NOT NULL
+    );
 
--- Trigger to update average GPA after a grade is deleted
-DELIMITER $$
+    UPDATE `groups`
+    SET group_gpa = @group_gpa
+    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
+END$$
 
-CREATE TRIGGER update_average_gpa_after_delete
+-- Recalculate class GPA after a grade is deleted
+CREATE TRIGGER after_grade_delete
 AFTER DELETE ON grades
 FOR EACH ROW
 BEGIN
-    DECLARE new_average DECIMAL(5,2);
-
-    -- Calculate the new average GPA for the class
-    SELECT AVG(grade) INTO new_average
-    FROM grades
-    WHERE class_id = OLD.class_id;
-
-    -- Update the average_gpa column in the classes table
+    -- Recalculate Class GPA
     UPDATE classes
-    SET average_gpa = new_average
+    SET average_gpa = (
+        SELECT AVG(numerical_grade)
+        FROM grades
+        WHERE class_id = OLD.class_id AND numerical_grade IS NOT NULL
+    )
     WHERE class_id = OLD.class_id;
-END $$
 
-DELIMITER ;
-
-
--- DELIMITERS FOR STUDENT AUTO GRADE CALCULATIONS
--- This does encorperate calculations using credit_hours
--- Update when a new grade is entered
-DELIMITER $$
-
-CREATE TRIGGER update_cumulative_gpa_after_insert
-AFTER INSERT ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_gpa DECIMAL(5, 2);
-
-    -- Calculate the new GPA for the student
-    SELECT SUM(g.grade * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_gpa
-    FROM grades g
-    JOIN classes c ON g.class_id = c.class_id
-    WHERE g.student_id = NEW.student_id;
-
-    -- Update the cumulative GPA for the student
+    -- Recalculate Student Cumulative GPA
     UPDATE students
-    SET cumulative_gpa = new_gpa
-    WHERE student_id = NEW.student_id;
-END $$
-
-DELIMITER ;
-
--- Update when a grade is updated 
-DELIMITER $$
-
-CREATE TRIGGER update_cumulative_gpa_after_update
-AFTER UPDATE ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_gpa DECIMAL(5, 2);
-
-    -- Recalculate the new GPA for the student
-    SELECT SUM(g.grade * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_gpa
-    FROM grades g
-    JOIN classes c ON g.class_id = c.class_id
-    WHERE g.student_id = NEW.student_id;
-
-    -- Update the cumulative GPA for the student
-    UPDATE students
-    SET cumulative_gpa = new_gpa
-    WHERE student_id = NEW.student_id;
-END $$
-
-DELIMITER ;
-
--- Update after a grade has been deleted
-DELIMITER $$
-
-CREATE TRIGGER update_cumulative_gpa_after_delete
-AFTER DELETE ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_gpa DECIMAL(5, 2);
-
-    -- Recalculate the new GPA for the student
-    SELECT SUM(g.grade * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_gpa
-    FROM grades g
-    JOIN classes c ON g.class_id = c.class_id
-    WHERE g.student_id = OLD.student_id;
-
-    -- Update the cumulative GPA for the student
-    UPDATE students
-    SET cumulative_gpa = new_gpa
+    SET cumulative_gpa = (
+        SELECT SUM(numerical_grade * credit_hours) / SUM(credit_hours)
+        FROM grades g
+        JOIN classes c ON g.class_id = c.class_id
+        WHERE g.student_id = OLD.student_id AND numerical_grade IS NOT NULL
+    )
     WHERE student_id = OLD.student_id;
-END $$
 
-DELIMITER ;
+    -- Recalculate Group GPA
+    SET @group_gpa = (
+        SELECT AVG(numerical_grade)
+        FROM grades g
+        JOIN classes c ON g.class_id = c.class_id
+        JOIN class_group_mapping cgm ON cgm.class_id = c.class_id
+        WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = OLD.class_id)
+        AND numerical_grade IS NOT NULL
+    );
 
-
--- DELIMITERS FOR GROUP GPA CALCULATIONS
--- Trigger to update group GPA after a class GPA is updated
-DELIMITER $$
-
-CREATE TRIGGER update_group_gpa_after_class_gpa_update
-AFTER UPDATE ON classes
-FOR EACH ROW
-BEGIN
-    DECLARE new_group_gpa DECIMAL(5, 2);
-
-    -- Calculate the new weighted GPA for the group
-    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_group_gpa
-    FROM classes c
-    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
-    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
-
-    -- Update the group GPA
     UPDATE `groups`
-    SET group_gpa = new_group_gpa
-    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
-END $$
-
-DELIMITER ;
-
--- Trigger to update group GPA after a grade is inserted, which may affect class GPA
-DELIMITER $$
-
-CREATE TRIGGER update_group_gpa_after_grade_insert
-AFTER INSERT ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_group_gpa DECIMAL(5, 2);
-
-    -- Calculate the new weighted GPA for the group
-    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_group_gpa
-    FROM classes c
-    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
-    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
-
-    -- Update the group GPA
-    UPDATE `groups`
-    SET group_gpa = new_group_gpa
-    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
-END $$
-
-DELIMITER ;
-
--- Trigger to update group GPA after a grade is updated, which may affect class GPA
-DELIMITER $$
-
-CREATE TRIGGER update_group_gpa_after_grade_update
-AFTER UPDATE ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_group_gpa DECIMAL(5, 2);
-
-    -- Calculate the new weighted GPA for the group
-    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_group_gpa
-    FROM classes c
-    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
-    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
-
-    -- Update the group GPA
-    UPDATE `groups`
-    SET group_gpa = new_group_gpa
-    WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = NEW.class_id);
-END $$
-
-DELIMITER ;
-
--- Trigger to update group GPA after a grade is deleted, which may affect class GPA
-DELIMITER $$
-
-CREATE TRIGGER update_group_gpa_after_grade_delete
-AFTER DELETE ON grades
-FOR EACH ROW
-BEGIN
-    DECLARE new_group_gpa DECIMAL(5, 2);
-
-    -- Calculate the new weighted GPA for the group
-    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_group_gpa
-    FROM classes c
-    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
-    WHERE cgm.group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = OLD.class_id);
-
-    -- Update the group GPA
-    UPDATE `groups`
-    SET group_gpa = new_group_gpa
+    SET group_gpa = @group_gpa
     WHERE group_id = (SELECT group_id FROM class_group_mapping WHERE class_id = OLD.class_id);
-END $$
+END$$
 
 DELIMITER ;
 
-
--- Trigger to update group GPA when a class is added to the group
-DELIMITER $$
-
-CREATE TRIGGER update_group_gpa_after_class_added
-AFTER INSERT ON class_group_mapping
-FOR EACH ROW
-BEGIN
-    DECLARE new_group_gpa DECIMAL(5, 2);
-
-    -- Calculate the new weighted GPA for the group
-    SELECT SUM(c.average_gpa * c.credit_hours) / SUM(c.credit_hours)
-    INTO new_group_gpa
-    FROM classes c
-    JOIN class_group_mapping cgm ON c.class_id = cgm.class_id
-    WHERE cgm.group_id = NEW.group_id;
-
-    -- Update the group GPA
-    UPDATE `groups`
-    SET group_gpa = new_group_gpa
-    WHERE group_id = NEW.group_id;
-END $$
-
-DELIMITER ;
 
 
 -- Test Data (Students, Classes, Grades)
@@ -340,16 +201,21 @@ INSERT INTO class_group_mapping (class_id, group_id) VALUES
     (2, 1),  -- History 101 -> Group A
     (3, 2);  -- Computer Science 101 -> Group B
 
--- Insert Grades (student_id, class_id, grade)
-INSERT INTO grades (student_id, class_id, grade) VALUES
-    ('S001', 1, 3.5),
-    ('S002', 1, 3.7),
-    ('S003', 1, 3.9),
-    ('S004', 1, 3.6),
-    ('S005', 1, 4.0),
-    ('S001', 2, 2.0),
-    ('S002', 2, 3.1),
-    ('S003', 2, 1.6),
-    ('S004', 2, 4.0),
-    ('S005', 2, 2.0);
+-- Insert Grades (student_id, class_id, grade as letter)
+INSERT INTO grades (student_id, class_id, letter_grade) VALUES
+    ('S001', 1, 'A'),   -- 4.00
+    ('S002', 1, 'A-'),  -- 3.67
+    ('S003', 1, 'B+'),  -- 3.33
+    ('S004', 1, 'B'),   -- 3.00
+    ('S005', 1, 'B-'),  -- 2.67
+    ('S001', 2, 'C+'),  -- 2.33
+    ('S002', 2, 'C'),   -- 2.00
+    ('S003', 2, 'C-'),  -- 1.67
+    ('S004', 2, 'D+'),  -- 1.33
+    ('S005', 2, 'D'),   -- 1.00
+    ('S001', 3, 'D-'),  -- 0.67
+    ('S002', 3, 'F'),   -- 0.00
+    ('S003', 3, 'I'),   -- Incomplete (ignored in GPA)
+    ('S004', 3, 'W'),   -- Withdrawn (ignored in GPA)
+    ('S005', 3, 'P');   -- Pass (ignored in GPA)
 
