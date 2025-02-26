@@ -8,8 +8,9 @@ function Sidebar() {
             <ul>
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/groups">Groups</Link></li>
-                <li><Link to="/classes">Classes</Link></li>
+                <li><Link to="/classes">Sections</Link></li>
                 <li><Link to="/students">Students</Link></li>
+                <li><Link to="/grades">Grades</Link></li>
             </ul>
         </div>
     );

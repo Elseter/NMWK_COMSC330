@@ -31,7 +31,7 @@ function Classes() {
 
   return (
     <div className="classes-container">
-      <h1>Classes</h1>
+      <h1>Sections</h1>
       {classes.map((cls) => (
         <div key={cls.class_id} className="class-card">
           <div className="class-header" onClick={() => toggleClass(cls.class_id)}>
