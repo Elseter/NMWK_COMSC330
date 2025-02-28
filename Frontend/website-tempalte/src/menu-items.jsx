@@ -96,7 +96,7 @@ const menuItems = {
               id: 'courses',
               title: 'Courses',
               type: 'item',
-              url: '/tables/datatable'
+              url: '/tables/data-table'
             },
             {
               id: 'grades',

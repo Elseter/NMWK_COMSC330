@@ -97,6 +97,11 @@ const routes = [
       },
       {
         exact: 'true',
+        path: '/tables/data-table',
+        element: lazy(() => import('./views/tables/DataTables'))
+      },
+      {
+        exact: 'true',
         path: '/charts/nvd3',
         element: lazy(() => import('./views/charts/nvd3-chart'))
       },
