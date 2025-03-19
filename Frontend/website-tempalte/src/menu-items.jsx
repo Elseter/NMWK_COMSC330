@@ -16,6 +16,49 @@ const menuItems = {
       ]
     },
     {
+      id: 'ui-forms',
+      title: 'Tables',
+      type: 'group',
+      icon: 'icon-group',
+      children: [
+        {
+          id: 'students',
+          title: 'Students',
+          type: 'item',
+          icon: 'feather icon-user',
+          url: '/tables/data-table'
+        },
+        {
+          id: 'classes',
+          title: 'Classes',
+          type: 'item',
+          icon: 'feather icon-users',
+          url: '/tables/ClassTable'
+        },
+        {
+          id: 'groups',
+          title: 'Groups',
+          type: 'item',
+          icon: 'feather icon-users',
+          url: '/tables/GroupsTable'
+        },
+        {
+          id: 'demo',
+          title: 'Demo',
+          type: 'item',
+          icon: 'feather icon-server',
+          url: '/tables/bootstrap'
+        }, 
+        {
+          id: 'forms',
+          title: 'Input Methods',
+          type: 'item',
+          icon: 'feather icon-file-text',
+          url: '/forms/form-basic'
+        }
+      ]
+    },
+    {
       id: 'ui-element',
       title: 'UI ELEMENT',
       type: 'group',
@@ -62,47 +105,6 @@ const menuItems = {
               title: 'Typography',
               type: 'item',
               url: '/basic/typography'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'ui-forms',
-      title: 'Tables',
-      type: 'group',
-      icon: 'icon-group',
-      children: [
-        {
-          id: 'forms',
-          title: 'Input Methods',
-          type: 'item',
-          icon: 'feather icon-file-text',
-          url: '/forms/form-basic'
-        },
-        {
-          id: 'tables',
-          title: 'Tables',
-          type: 'collapse',
-          icon: 'feather icon-server',
-          children: [
-            {
-              id: 'students',
-              title: 'Students',
-              type: 'item',
-              url: '/tables/bootstrap'
-            },
-            {
-              id: 'courses',
-              title: 'Courses',
-              type: 'item',
-              url: '/tables/data-table'
-            },
-            {
-              id: 'grades',
-              title: 'Grades',
-              type: 'item',
-              url: '/tables/datatable'
             }
           ]
         }
