@@ -18,6 +18,8 @@ function App() {
   const [sections, setSections] = useState([]);
   const [groups, setGroups] = useState([]);
   const [runs, setRuns] = useState([]);
+  const [goodList, setGoodList] = useState([]);
+  const [badList, setBadList] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -438,39 +440,124 @@ function App() {
     </div>
   );
 
+  const renderGoodList = () => {
+    const highGrades = ["A", "A-"];
+    const goodStudents = students.filter(student =>
+        student.grades.some(grade => highGrades.includes(grade.letter_grade))
+    );
+
+    return (
+        <div className="good-tab">
+          <h2>Good List</h2>
+          {loading ? (
+              <div className="loading">Loading good list...</div>
+          ) : (
+              <div className="data-table-container">
+                <table className="data-table">
+                  <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>GPA</th>
+                    <th>Courses</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {goodStudents.map(student => (
+                      <tr key={student.student_id}>
+                        <td>{student.student_id}</td>
+                        <td>{student.student_name}</td>
+                        <td>{student.cummulative_gpa || 'N/A'}</td>
+                        <td>{student.grades?.length || 0}</td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </div>
+          )}
+        </div>
+    );
+  };
+  const renderBadList = () => {
+    const lowGrades = ["D", "D-", "F"];
+    const badStudents = students.filter(student =>
+        student.grades.some(grade => lowGrades.includes(grade.letter_grade))
+    );
+
+    return (
+        <div className="bad-tab">
+          <h2>Bad List</h2>
+          {loading ? (
+              <div className="loading">Loading bad list...</div>
+          ) : (
+              <div className="data-table-container">
+                <table className="data-table">
+                  <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>GPA</th>
+                    <th>Courses</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {badStudents.map(student => (
+                      <tr key={student.student_id}>
+                        <td>{student.student_id}</td>
+                        <td>{student.student_name}</td>
+                        <td>{student.cummulative_gpa || 'N/A'}</td>
+                        <td>{student.grades?.length || 0}</td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </div>
+          )}
+        </div>
+    );
+  };
+
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>Academic Analytics</h1>
-        <nav className="main-nav">
-          <ul>
-            <li className={activeTab === "dashboard" ? "active" : ""}>
-              <button onClick={() => setActiveTab("dashboard")}>Dashboard</button>
-            </li>
-            <li className={activeTab === "students" ? "active" : ""}>
-              <button onClick={() => setActiveTab("students")}>Students</button>
-            </li>
-            <li className={activeTab === "sections" ? "active" : ""}>
-              <button onClick={() => setActiveTab("sections")}>Sections</button>
-            </li>
-            <li className={activeTab === "groups" ? "active" : ""}>
-              <button onClick={() => setActiveTab("groups")}>Groups</button>
-            </li>
-          </ul>
-        </nav>
-      </header>
+      <div className="app-container">
+        <header className="app-header">
+          <h1>Academic Analytics</h1>
+          <nav className="main-nav">
+            <ul>
+              <li className={activeTab === "dashboard" ? "active" : ""}>
+                <button onClick={() => setActiveTab("dashboard")}>Dashboard</button>
+              </li>
+              <li className={activeTab === "students" ? "active" : ""}>
+                <button onClick={() => setActiveTab("students")}>Students</button>
+              </li>
+              <li className={activeTab === "sections" ? "active" : ""}>
+                <button onClick={() => setActiveTab("sections")}>Sections</button>
+              </li>
+              <li className={activeTab === "groups" ? "active" : ""}>
+                <button onClick={() => setActiveTab("groups")}>Groups</button>
+              </li>
+              <li className={activeTab === "goodlist" ? "active" : ""}>
+                <button onClick={() => setActiveTab("goodlist")}>Good List</button>
+              </li>
+              <li className={activeTab === "badlist" ? "active" : ""}>
+                <button onClick={() => setActiveTab("badlist")}>Bad List</button>
+              </li>
+            </ul>
+          </nav>
+        </header>
 
-      <main className="app-content">
-        {activeTab === "dashboard" && renderDashboard()}
-        {activeTab === "students" && renderStudents()}
-        {activeTab === "sections" && renderSections()}
-        {activeTab === "groups" && renderGroups()}
-      </main>
+        <main className="app-content">
+          {activeTab === "dashboard" && renderDashboard()}
+          {activeTab === "students" && renderStudents()}
+          {activeTab === "sections" && renderSections()}
+          {activeTab === "groups" && renderGroups()}
+          {activeTab === "goodlist" && renderGoodList()}
+          {activeTab === "badlist" && renderBadList()}
+        </main>
 
-      <footer className="app-footer">
-        <p>NMWK Academic Analytics Dashboard &copy; {new Date().getFullYear()}</p>
-      </footer>
-    </div>
+        <footer className="app-footer">
+          <p>NMWK Academic Analytics Dashboard &copy; {new Date().getFullYear()}</p>
+        </footer>
+      </div>
   );
 }
 
