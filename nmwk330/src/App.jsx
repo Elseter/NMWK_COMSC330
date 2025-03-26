@@ -264,6 +264,7 @@ function App() {
     }
   }
 
+  // TODO: Separate each page to its own file
   // Render different UI tabs
   const renderDashboard = () => (
     <div className="dashboard">
