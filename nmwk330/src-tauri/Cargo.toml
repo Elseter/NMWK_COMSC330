@@ -25,4 +25,5 @@ serde_json = "1.0"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 chrono = "0.4"
 xml2json-rs = "1.0"
+tauri-plugin-dialog = "2"
 

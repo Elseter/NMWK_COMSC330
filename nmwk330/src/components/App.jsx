@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import Database from '@tauri-apps/plugin-sql';
-import "./App.css";
+import { appConfigDir, appDataDir, appLocalDataDir } from '@tauri-apps/api/path';
+import { open } from '@tauri-apps/plugin-dialog'
+import FileUpload from "./FileUpload";
+import "../App.css";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -18,6 +21,8 @@ function App() {
   const [sections, setSections] = useState([]);
   const [groups, setGroups] = useState([]);
   const [runs, setRuns] = useState([]);
+  const [filesDir, setFilesDir] = useState('');
+  const [filesDirExists, setFilesDirExists] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,7 +32,10 @@ function App() {
         const sectionData = await fetchAllSections();
         const groupData = await fetchAllGroups();
         const runData = await fetchAllRuns();
-        
+
+        // TEMP LOCATION FOR CHECK, MOVE TO UPLOAD COMPONENT WHEN CREATED
+        checkFilesFolder();
+
         setStudents(studentData || []);
         setSections(sectionData || []);
         setGroups(groupData || []);
@@ -36,7 +44,7 @@ function App() {
         // Calculate statistics
         const avgGPA = calculateAverageGPA(studentData || []);
         const gradeDistribution = calculateGradeDistribution(studentData || []);
-        
+
         setStats({
           totalStudents: studentData?.length || 0,
           totalSections: sectionData?.length || 0,
@@ -55,35 +63,82 @@ function App() {
     fetchData();
   }, []);
 
+  // Run function on startup to check if the files folder is present in same directory as sqlite file
+  const checkFilesFolder = async () => {
+    try {
+      const basefilesDir = await appLocalDataDir();
+      console.log(basefilesDir);
+      const filesDirExists = await invoke("check_files_folder", { dir: basefilesDir });
+      if (!filesDirExists) {
+        const create_sucess = await invoke("create_files_folder", { dir: basefilesDir });
+        if (create_sucess) {
+          setFilesDir(basefilesDir);
+          setFilesDirExists(true);
+          console.log('Files folder created successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking files folder:', error);
+    }
+  };
+
+  // File upload function
+  const FileUpload = () => {
+    const [isValid, setIsValid] = useState(false);
+    const [warning, setWarning] = useState('');
+
+    const selectRunFile = async () => {
+      try {
+        const filePath = await open({
+          filters: [{ name: "RUN Files", extensions: ["run", "txt"] }],
+        });
+
+        if (!filePath) return; // Error or Cancelled
+        const result = await invoke("validate_run_file", { runFilePath: filePath });
+
+        if (result.valid) {
+          setIsValid(true);
+          setWarning('');
+        } else {
+          setIsValid(false);
+          setWarning(result.message);
+        }
+      } catch (error) {
+        console.error("Error selecting file:", error);
+      }
+    };
+  }
+
+
   const calculateAverageGPA = (students) => {
     if (!students || students.length === 0) return 0;
-    
+
     const validGPAs = students.filter(student => student.cummulative_gpa !== null);
     if (validGPAs.length === 0) return 0;
-    
+
     const totalGPA = validGPAs.reduce((sum, student) => sum + student.cummulative_gpa, 0);
     return (totalGPA / validGPAs.length).toFixed(2);
   };
 
   const calculateGradeDistribution = (students) => {
     const distribution = {
-      'A': 0, 'A-': 0, 'B+': 0, 'B': 0, 'B-': 0, 
-      'C+': 0, 'C': 0, 'C-': 0, 'D+': 0, 'D': 0, 'D-': 0, 
+      'A': 0, 'A-': 0, 'B+': 0, 'B': 0, 'B-': 0,
+      'C+': 0, 'C': 0, 'C-': 0, 'D+': 0, 'D': 0, 'D-': 0,
       'F': 0, 'I': 0, 'W': 0, 'P': 0, 'NP': 0
     };
-    
+
     if (!students) return distribution;
-    
+
     students.forEach(student => {
       if (!student.grades) return;
-      
+
       student.grades.forEach(grade => {
         if (grade.letter_grade && distribution[grade.letter_grade] !== undefined) {
           distribution[grade.letter_grade]++;
         }
       });
     });
-    
+
     return distribution;
   };
 
@@ -104,7 +159,7 @@ function App() {
         LEFT JOIN sections sec ON g.section_id = sec.section_id
         ORDER BY s.student_id, sec.section_name;
       `);
-  
+
       const formattedStudents = [];
       result.forEach(row => {
         let student = formattedStudents.find(s => s.student_id === row.student_id);
@@ -117,7 +172,7 @@ function App() {
           };
           formattedStudents.push(student);
         }
-  
+
         if (row.section_name) {
           student.grades.push({
             section_name: row.section_name,
@@ -127,7 +182,7 @@ function App() {
           });
         }
       });
-  
+
       return formattedStudents;
     } catch (error) {
       console.error('Error fetching student details:', error);
@@ -266,43 +321,49 @@ function App() {
   const renderDashboard = () => (
     <div className="dashboard">
       <h2>Academic Database Dashboard</h2>
-      
+  
       {loading ? (
         <div className="loading">Loading data...</div>
       ) : (
         <>
+          {/* File Upload Section */}
+          <div className="file-upload-container">
+            <h3>Upload Run File</h3>
+            <FileUpload />
+          </div>
+  
           <div className="stat-cards">
             <div className="stat-card">
               <h3>Students</h3>
               <div className="stat-value">{stats.totalStudents}</div>
               <div className="stat-subtitle">Total Enrolled</div>
             </div>
-            
+  
             <div className="stat-card">
               <h3>Sections</h3>
               <div className="stat-value">{stats.totalSections}</div>
               <div className="stat-subtitle">Course Sections</div>
             </div>
-            
+  
             <div className="stat-card">
               <h3>Groups</h3>
               <div className="stat-value">{stats.totalGroups}</div>
               <div className="stat-subtitle">Student Groups</div>
             </div>
-            
+  
             <div className="stat-card">
               <h3>Runs</h3>
               <div className="stat-value">{stats.totalRuns}</div>
               <div className="stat-subtitle">Analysis Runs</div>
             </div>
-            
+  
             <div className="stat-card">
               <h3>Average GPA</h3>
               <div className="stat-value">{stats.averageGPA}</div>
               <div className="stat-subtitle">Overall Performance</div>
             </div>
           </div>
-          
+  
           <div className="dashboard-charts">
             <div className="chart-container">
               <h3>Grade Distribution</h3>
@@ -318,7 +379,7 @@ function App() {
                 ))}
               </div>
             </div>
-            
+  
             <div className="chart-container">
               <h3>Recent Activity</h3>
               <div className="recent-activity">
