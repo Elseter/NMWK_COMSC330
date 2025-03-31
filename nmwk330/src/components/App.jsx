@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import Database from '@tauri-apps/plugin-sql';
 import { appConfigDir, appDataDir, appLocalDataDir } from '@tauri-apps/api/path';
-import { open } from '@tauri-apps/plugin-dialog'
 import FileUpload from "./FileUpload";
 import "../App.css";
 

@@ -1,15 +1,26 @@
-
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import Database from '@tauri-apps/plugin-sql';
 import "./FileUpload.css";
+import Toast from "./Toast"; // Import the Toast component
 
 const FileUpload = () => {
     const [isValid, setIsValid] = useState(false);
-    const [warning, setWarning] = useState('');
     const [runResults, setRunResults] = useState(null);
     const [runId, setRunId] = useState(null);
+    // Add state for toast notifications
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+    // Function to show toast notifications
+    const showToast = (message, type) => {
+        setToast({ visible: true, message, type });
+    };
+
+    // Function to hide toast notifications
+    const hideToast = () => {
+        setToast({ ...toast, visible: false });
+    };
 
     const selectRunFile = async () => {
         try {
@@ -24,27 +35,16 @@ const FileUpload = () => {
 
             if (result.valid) {
                 setIsValid(true);
-                setWarning('');
-                // Loop through the array of groups
-                for (const group of result.contents.groups) {
-                    console.log(group.name);
-                    for (const section of group.sections) {
-                        console.log(section.name);
-                        for (const student of section.students) {
-                            console.log(student.name);
-                            console.log(student.id);
-                            console.log(student.grade);
-                        }
-                    }
-                }
                 setRunResults(result.contents);
                 console.log(result.contents);
+                showToast("File validated successfully", "success");
             } else {
                 setIsValid(false);
-                setWarning(result.message);
+                showToast(result.message, "error");
             }
         } catch (error) {
             console.error("Error selecting file:", error);
+            showToast("Error selecting file. See console for details.", "error");
         }
     };
 
@@ -57,7 +57,7 @@ const FileUpload = () => {
                 console.log(runExists);
                 setRunId(runExists[0].run_id);
                 console.log(runExists[0].run_id);
-                setWarning("Run already exists in the database.");
+                showToast("Run already exists in the database.", "error");
                 return;
             }
             // Insert the run into the database
@@ -117,18 +117,19 @@ const FileUpload = () => {
                     }
                 }
             }
-            setWarning("");
+            setRunId(runId); // Set the run ID
             console.log("File uploaded successfully");
+            showToast("File uploaded successfully", "success");
         } catch (error) {
             console.error("Error uploading file:", error);
-            setWarning("An error occurred while uploading the file. See console for details.");
+            showToast("Error uploading file. See console for details.", "error");
         }
     };
 
     const wipeData = async () => {
         try {
             if (!runId) {
-                setWarning("No run ID to wipe.");
+                showToast("No run ID to wipe.", "error");
                 return;
             }
 
@@ -142,21 +143,30 @@ const FileUpload = () => {
             await db.execute("DELETE FROM groups WHERE run_id = ?", [runId]);
             await db.execute("DELETE FROM runs WHERE run_id = ?", [runId]);
 
-            setWarning("Data wiped successfully.");
             setRunId(null); // Reset runId
             setRunResults(null); // Optionally reset the runResults state
+            setIsValid(false); // Reset validity
             console.log("Data wiped successfully.");
+            showToast("Data wiped successfully", "success");
         } catch (error) {
             console.error("Error wiping data:", error);
-            setWarning("An error occurred while wiping the data.");
+            showToast("Error wiping data. See console for details.", "error");
         }
     };
 
     return (
         <div>
+            {/* Render toast notification when visible */}
+            {toast.visible && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={hideToast} 
+                />
+            )}
+            
             <div className="file-upload-container">
                 <button onClick={selectRunFile}>Select .RUN File</button>
-                {warning && <p>{warning}</p>}
                 {isValid && <button onClick={handleUpload}>Upload</button>}
                 {isValid && <button onClick={wipeData}>Wipe Data</button>} {/* Wipe Data Button */}
             </div>
