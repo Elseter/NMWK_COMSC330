@@ -82,34 +82,6 @@ function App() {
     }
   };
 
-  // File upload function
-  const FileUpload = () => {
-    const [isValid, setIsValid] = useState(false);
-    const [warning, setWarning] = useState('');
-
-    const selectRunFile = async () => {
-      try {
-        const filePath = await open({
-          filters: [{ name: "RUN Files", extensions: ["run", "txt"] }],
-        });
-
-        if (!filePath) return; // Error or Cancelled
-        const result = await invoke("validate_run_file", { runFilePath: filePath });
-
-        if (result.valid) {
-          setIsValid(true);
-          setWarning('');
-        } else {
-          setIsValid(false);
-          setWarning(result.message);
-        }
-      } catch (error) {
-        console.error("Error selecting file:", error);
-      }
-    };
-  }
-
-
   const calculateAverageGPA = (students) => {
     if (!students || students.length === 0) return 0;
 
