@@ -8,6 +8,8 @@ import Students from "./Students";
 import Sections from "./Sections";
 import Groups from "./Groups";
 import FileUpload from "./FileUpload";
+import GoodList from "./GoodList";
+import BadList from "./BadList";
 import "../App.css";
 
 function App2() {
@@ -30,19 +32,19 @@ function App2() {
         const runData = await fetchAllRuns();
   
         checkFilesFolder();
-  
+
         setStudents(studentData || []);
         setSections(sectionData || []);
         setGroups(groupData || []);
         setRuns(runData || []);
-        
+
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [reloadTrigger]);
 
@@ -166,11 +168,11 @@ function App2() {
           </Routes>
         </main>
 
-        <footer className="app-footer">
-          <p>NMWK Academic Analytics Dashboard &copy; {new Date().getFullYear()}</p>
-        </footer>
-      </div>
-    </Router>
+          <footer className="app-footer">
+            <p>NMWK Academic Analytics Dashboard &copy; {new Date().getFullYear()}</p>
+          </footer>
+        </div>
+      </Router>
   );
 }
 
