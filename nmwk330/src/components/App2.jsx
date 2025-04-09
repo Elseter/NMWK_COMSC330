@@ -97,6 +97,16 @@ function App2() {
                 </NavLink>
               </li>
               <li>
+                <NavLink to="/goodlist" className={({ isActive }) => isActive ? "active" : ""}>
+                  Goodlist
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/badlist" className={({ isActive }) => isActive ? "active" : ""}>
+                  Badlist
+                </NavLink>
+              </li>
+              <li>
                 <NavLink to="/upload" className={({ isActive }) => isActive ? "active" : ""}>
                   Upload
                 </NavLink>
@@ -150,6 +160,22 @@ function App2() {
                   groups={groups} 
                 />
               } 
+            />
+            <Route 
+              path="/goodlist" 
+              element={
+                <GoodList 
+                  loading={loading} 
+                />
+              }
+            />
+            <Route 
+              path="/badlist" 
+              element={
+                <BadList 
+                  loading={loading} 
+                />
+              }
             />
             <Route 
               path="/upload" 
