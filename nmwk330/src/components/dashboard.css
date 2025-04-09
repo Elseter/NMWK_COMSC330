@@ -1,0 +1,210 @@
+:root {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --secondary-color: #e74c3c;
+    --background-color: #f4f6f9;
+    --card-background: #ffffff;
+    --text-color: #333333;
+    --text-light: #777777;
+    --border-color: #dddddd;
+    --success-color: #2ecc71;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+  }
+  
+  /* Base Styles */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  
+  /* App Container */
+  .app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  /* Header */
+  .app-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .app-header h1 {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  
+  /* Navigation */
+  .main-nav ul {
+    display: flex;
+    list-style: none;
+    gap: 1rem;
+  }
+  
+  .main-nav button {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 1rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  
+  .main-nav button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .main-nav li.active button {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.2);
+    font-weight: 500;
+  }
+  
+  /* Run Selector */
+  .run-selector {
+    background-color: var(--card-background);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  
+  .run-selector label {
+    color: var(--text-color);
+    font-weight: 600;
+  }
+  
+  .run-selector select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    cursor: pointer;
+  }
+  
+  /* Main Content */
+  .app-content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  
+  /* Dashboard */
+
+  .dashboard h2, .students-tab h2, .sections-tab h2, .groups-tab h2 {
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+    font-size: 1.2rem;
+    color: var(--text-light);
+  }
+  
+  /* Footer */
+  .app-footer {
+    background-color: var(--primary-dark);
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto;
+  }
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+  }
+  
+  .dashboard-filters {
+    margin-top: -30px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  /* Adjust width of select container */
+  .run-select {
+    min-width: 200px;
+  }
+
+  .no-data {
+    text-align: center;
+    margin-top: 60px;
+    padding: 40px;
+    background: #fff7f7;
+    border-radius: 12px;
+    color: #a33;
+    border: 1px solid #f3cfcf;
+  }
+  
+  .no-data h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  .dashboard-extra-stats {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+  
+  .group-stats,
+  .section-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  
+  .group-stat-card,
+  .section-stat-card {
+    background: #f9f9f9;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+  
+  .group-stat-card h4,
+  .section-stat-card h4 {
+    margin: 0 0 8px 0;
+    color: #333;
+  }
+  
+  .group-stat-card p,
+  .section-stat-card p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #555;
+  }
+  

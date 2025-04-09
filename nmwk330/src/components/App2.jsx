@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { appLocalDataDir } from '@tauri-apps/api/path';
-import { fetchAllStudents, fetchAllSections, fetchAllGroups, fetchAllRuns } from "../utils/DatabaseOperations";
-import { calculateAverageGPA, calculateGradeDistribution } from "../utils/StatsOperations";
+import { fetchAllStudents, fetchAllSections, fetchAllGroups, fetchAllRuns, deleteAllRuns } from "../utils/DatabaseOperations";
 import Dashboard from "./Dashboard";
 import Students from "./Students";
 import Sections from "./Sections";
@@ -13,20 +12,13 @@ import "../App.css";
 
 function App2() {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalSections: 0,
-    totalGroups: 0,
-    totalRuns: 0,
-    averageGPA: 0,
-    gradeDistribution: {},
-  });
   const [students, setStudents] = useState([]);
   const [sections, setSections] = useState([]);
   const [groups, setGroups] = useState([]);
   const [runs, setRuns] = useState([]);
   const [filesDir, setFilesDir] = useState('');
   const [filesDirExists, setFilesDirExists] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,7 +29,6 @@ function App2() {
         const groupData = await fetchAllGroups();
         const runData = await fetchAllRuns();
   
-        // Check files folder
         checkFilesFolder();
   
         setStudents(studentData || []);
@@ -53,41 +44,27 @@ function App2() {
     };
   
     fetchData();
-  }, []);
-  
-  // New useEffect to recalculate stats when data changes
-  useEffect(() => {
-  
-    const avgGPA = calculateAverageGPA(students);
-    const gradeDistribution = calculateGradeDistribution(students);
-  
-    setStats({
-      totalStudents: students.length,
-      totalSections: sections.length,
-      totalGroups: groups.length,
-      totalRuns: runs.length,
-      averageGPA: avgGPA,
-      gradeDistribution: gradeDistribution,
-    });
-  }, [students, sections, groups, runs]);
+  }, [reloadTrigger]);
 
-  // Check if the files folder is present
   const checkFilesFolder = async () => {
     try {
       const basefilesDir = await appLocalDataDir();
-      console.log(basefilesDir);
       const filesDirExists = await invoke("check_files_folder", { dir: basefilesDir });
       if (!filesDirExists) {
         const create_success = await invoke("create_files_folder", { dir: basefilesDir });
         if (create_success) {
           setFilesDir(basefilesDir);
           setFilesDirExists(true);
-          console.log('Files folder created successfully');
         }
       }
     } catch (error) {
       console.error('Error checking files folder:', error);
     }
+  };
+
+  const handleDeleteAllRuns = async () => {
+    await deleteAllRuns();
+    setReloadTrigger(prev => prev + 1);
   };
 
   return (
@@ -118,9 +95,14 @@ function App2() {
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/Upload" className={({ isActive }) => isActive ? "active" : ""}>
-                    Upload
+                <NavLink to="/upload" className={({ isActive }) => isActive ? "active" : ""}>
+                  Upload
                 </NavLink>
+              </li>
+              <li>
+                <button onClick={handleDeleteAllRuns} className="delete-runs-btn">
+                  Delete All Runs
+                </button>
               </li>
             </ul>
           </nav>
@@ -133,8 +115,10 @@ function App2() {
               element={
                 <Dashboard 
                   loading={loading} 
-                  stats={stats} 
-                  runs={runs} 
+                  runs={runs}
+                  groups={groups}
+                  sections={sections}
+                  students={students} 
                 />
               } 
             />

@@ -57,6 +57,7 @@ export async function fetchAllSections() {
     const result = await db.select(`
       SELECT 
         sec.section_id,
+        sec.run_id,
         sec.section_name,
         sec.credit_hours,
         sec.section_gpa,
@@ -76,6 +77,7 @@ export async function fetchAllSections() {
       if (!section) {
         section = {
           section_id: row.section_id,
+          run_id: row.run_id,
           section_name: row.section_name,
           credit_hours: row.credit_hours,
           section_gpa: row.section_gpa,
@@ -175,5 +177,20 @@ export async function fetchAllRuns() {
   } catch (error) {
     console.error('Error fetching run details:', error);
     return null;
+  }
+}
+
+export async function deleteAllRuns() {
+  try {
+    const db = await Database.load("sqlite:nmwk330.db");
+    await db.execute(`
+      DELETE FROM runs;
+      DELETE FROM groups;
+      DELETE FROM section_groups;
+      DELETE FROM grades;
+    `);
+    console.log('All runs deleted successfully');
+  } catch (error) {
+    console.error('Error deleting runs:', error);
   }
 }
