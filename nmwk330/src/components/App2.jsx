@@ -103,7 +103,7 @@ function App2() {
               </li>
               <li>
                 <NavLink to="/badlist" className={({ isActive }) => isActive ? "active" : ""}>
-                  Badlist
+                  Worklist
                 </NavLink>
               </li>
               <li>
