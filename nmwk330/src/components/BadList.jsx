@@ -29,7 +29,7 @@ function BadList({ loading }) {
 
                 setSectionGrades(badListData);
             } catch (error) {
-                console.error("Error fetching bad list data:", error);
+                console.error("Error fetching work list data:", error);
             }
         };
 
@@ -37,10 +37,10 @@ function BadList({ loading }) {
     }, []);
 
     return (
-        <div className="bad-list-tab">
-            <h2>Bad List</h2>
+        <div className="work-list-tab">
+            <h2>Work List</h2>
             {loading ? (
-                <div className="loading">Loading bad list data...</div>
+                <div className="loading">Loading work list data...</div>
             ) : (
                 <div className="data-table-container">
                     <table className="data-table">
