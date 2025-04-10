@@ -18,6 +18,21 @@ function Dashboard({ loading, runs, groups, sections, students }) {
     gradeDistribution: {},
   });
 
+  // Calculate group z-score
+  const calculateGroupZScore = (group) => {
+    const groupGPA = group.group_gpa;
+    const avgGrpGPA = filteredGroups.reduce((acc, grp) => acc + grp.group_gpa, 0) / filteredGroups.length;
+    const stdDev = Math.sqrt(filteredGroups.reduce((acc, grp) => acc + Math.pow(grp.group_gpa - avgGrpGPA, 2), 0) / filteredGroups.length);
+    return (groupGPA - avgGrpGPA) / stdDev;
+  };
+
+  const calculateSectionZScore = (section) => {
+    const sectionGPA = section.section_gpa;
+    const avgSecGPA = filteredSections.reduce((acc, sec) => acc + sec.section_gpa, 0) / filteredSections.length;
+    const stdDev = Math.sqrt(filteredSections.reduce((acc, sec) => acc + Math.pow(sec.section_gpa - avgSecGPA, 2), 0) / filteredSections.length);
+    return (sectionGPA - avgSecGPA) / stdDev;
+  };
+
   // Prepare options for react-select
   const runOptions = [
     { value: "", label: "All Runs" },
@@ -125,6 +140,13 @@ function Dashboard({ loading, runs, groups, sections, students }) {
     }),
   };
 
+  const getZScoreClass = (z) => {
+    const num = parseFloat(z);
+    if (num >= 2) return "z-score-gold pulse-gold";
+    if (num <= -2) return "z-score-red pulse-red";
+    return "z-score-normal";
+  };
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
@@ -156,7 +178,7 @@ function Dashboard({ loading, runs, groups, sections, students }) {
             <div className="stat-card">
               <h3>Students</h3>
               <div className="stat-value">{stats.totalStudents}</div>
-              <div className="stat-subtitle">Total Enrolled</div>
+              <div className="stat-subtitle">Total Unique</div>
             </div>
 
             <div className="stat-card">
@@ -213,14 +235,19 @@ function Dashboard({ loading, runs, groups, sections, students }) {
             <div className="chart-container">
               <h3>Group Statistics</h3>
               <div className="group-stats">
-                {filteredGroups.map(group => (
-                  <div key={group.group_id} className="group-stat-card">
-                    <h4>{group.group_name}</h4>
-                    <p>Run: {group.run_name}</p>
-                    <p>Average GPA: {group.group_gpa}</p>
-                    <p>Num Sections: {group.sections.length}</p>
-                  </div>
-                ))}
+                {filteredGroups.map(group => {
+                  const groupZScore = calculateGroupZScore(group).toFixed(2);
+
+                  return (
+                    <div key={group.group_id} className="group-stat-card">
+                      <h4>{group.group_name}</h4>
+                      <p>Run: {group.run_name}</p>
+                      <p>Average GPA: {group.group_gpa}</p>
+                      <p>Num Sections: {group.sections.length}</p>
+                      <p>Z-Score: {groupZScore}</p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -230,14 +257,36 @@ function Dashboard({ loading, runs, groups, sections, students }) {
               <div className="section-stats">
                 {filteredSections.map(section => {
                   const run = runs.find(r => r.run_id === section.run_id);
+                  const studentsInSection = filteredStudents.filter(student => student.run_id === section.run_id &&
+                    /* check if section appears in grades array */
+                    student.grades.some(grade => grade.section_name === section.section_name)
+                  );
                   const runName = run ? run.run_name : "Unknown Run";
+                  const sectionZScore = calculateSectionZScore(section).toFixed(2);
+                  if (Math.abs(sectionZScore) > 2) {
+                    console.log(`Section ${section.section_name} has a Z-score of ${sectionZScore}`);
+                  }
 
                   return (
-                    <div key={section.section_id} className="section-stat-card">
+                    <div
+                      key={section.section_id}
+                      className={`section-stat-card ${sectionZScore <= -2
+                          ? "pulse-alert"
+                          : sectionZScore >= 2
+                            ? "pulse-gold"
+                            : ""
+                        }`}
+                    >
                       <h4>{section.section_name}</h4>
                       <p>Credit Hours: {section.credit_hours}</p>
                       <p>Average GPA: {section.section_gpa}</p>
-                      <p># Students: {section.students.length}</p>
+                      <p># Students: {studentsInSection.length}</p>
+                      <p>
+                        Z-score:{" "}
+                        <span className={`z-score-pill ${getZScoreClass(sectionZScore)}`}>
+                          {sectionZScore}
+                        </span>
+                      </p>
                       <p>Run: {runName}</p>
                     </div>
                   );
