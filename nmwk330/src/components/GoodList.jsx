@@ -8,26 +8,30 @@ function GoodList({ loading }) {
         const fetchData = async () => {
             try {
                 const sectionData = await fetchAllSections();
-                const uniqueStudents = new Map();
+                const groupedStudents = new Map();
 
-                const goodListData = sectionData.flatMap(section =>
+                sectionData.forEach(section => {
                     section.students
                         .filter(student => ['A', 'A-'].includes(student.letter_grade))
-                        .map(student => ({
-                            ...student,
-                            sectionName: section.section_name
-                        }))
-                        .filter(student => {
-                            const key = `${student.student_id}-${student.sectionName}`;
-                            if (!uniqueStudents.has(key)) {
-                                uniqueStudents.set(key, true);
-                                return true;
+                        .forEach(student => {
+                            const key = student.student_id;
+                            if (!groupedStudents.has(key)) {
+                                groupedStudents.set(key, {
+                                    student_id: student.student_id,
+                                    student_name: student.student_name,
+                                    classes: new Set()
+                                });
                             }
-                            return false;
-                        })
-                );
+                            groupedStudents.get(key).classes.add(
+                                `${section.section_name} (${student.letter_grade})`
+                            );
+                        });
+                });
 
-                setSectionGrades(goodListData);
+                setSectionGrades(Array.from(groupedStudents.values()).map(student => ({
+                    ...student,
+                    classes: Array.from(student.classes)
+                })));
             } catch (error) {
                 console.error("Error fetching good list data:", error);
             }
@@ -48,8 +52,7 @@ function GoodList({ loading }) {
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
-                            <th>Section</th>
-                            <th>Letter Grade</th>
+                            <th>Classes</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -57,8 +60,11 @@ function GoodList({ loading }) {
                             <tr key={index}>
                                 <td>{student.student_id}</td>
                                 <td>{student.student_name}</td>
-                                <td>{student.sectionName}</td>
-                                <td>{student.letter_grade}</td>
+                                <td>
+                                    {student.classes.map((cls, idx) => (
+                                        <div key={idx}>{cls}</div>
+                                    ))}
+                                </td>
                             </tr>
                         ))}
                         </tbody>
