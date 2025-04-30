@@ -1,14 +1,19 @@
 import { useState, useEffect } from "react";
 import Select from "react-select";
 import { calculateAverageGPA, calculateGradeDistribution } from "../utils/StatsOperations";
+import { calculateGroupGradeDistribution, calculateSectionGradeDistribution } from "./GradeDistributionUtils";
+import GradeDistributionChart from "./GradeDistributionChart";
 import "./dashboard.css";
 
 function Dashboard({ loading, runs, groups, sections, students }) {
   const [selectedRun, setSelectedRun] = useState(null);
-  const [selectGroup, setSelectGroup] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedSection, setSelectedSection] = useState(null);
   const [filteredStudents, setFilteredStudents] = useState(students);
   const [filteredSections, setFilteredSections] = useState(sections);
   const [filteredGroups, setFilteredGroups] = useState(groups);
+  const [groupGradeDistribution, setGroupGradeDistribution] = useState({});
+  const [sectionGradeDistribution, setSectionGradeDistribution] = useState({});
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalSections: 0,
@@ -42,6 +47,22 @@ function Dashboard({ loading, runs, groups, sections, students }) {
     })),
   ];
 
+  const groupOptions = [
+    { value: "", label: "Select a Group" },
+    ...filteredGroups.map(group => ({
+      value: group.group_id,
+      label: group.group_name,
+    })),
+  ];
+
+  const sectionOptions = [
+    { value: "", label: "Select a Section" },
+    ...filteredSections.map(section => ({
+      value: section.section_id,
+      label: section.section_name,
+    })),
+  ];
+
   useEffect(() => {
     let studentData = students;
     let sectionData = sections;
@@ -68,7 +89,39 @@ function Dashboard({ loading, runs, groups, sections, students }) {
       averageGPA: avgGPA,
       gradeDistribution: gradeDistribution,
     });
+
+    // Reset selected group and section when run changes
+    setSelectedGroup(null);
+    setSelectedSection(null);
+    setGroupGradeDistribution({});
+    setSectionGradeDistribution({});
   }, [students, sections, groups, runs, selectedRun]);
+
+  // Calculate grade distribution when group is selected
+  useEffect(() => {
+    if (selectedGroup && selectedGroup.value) {
+      const group = filteredGroups.find(g => g.group_id === selectedGroup.value);
+      if (group) {
+        const distribution = calculateGroupGradeDistribution(filteredStudents, filteredSections, group);
+        setGroupGradeDistribution(distribution);
+      }
+    } else {
+      setGroupGradeDistribution({});
+    }
+  }, [selectedGroup, filteredGroups, filteredStudents]);
+
+  // Calculate grade distribution when section is selected
+  useEffect(() => {
+    if (selectedSection && selectedSection.value) {
+      const section = filteredSections.find(s => s.section_id === selectedSection.value);
+      if (section) {
+        const distribution = calculateSectionGradeDistribution(filteredStudents, section);
+        setSectionGradeDistribution(distribution);
+      }
+    } else {
+      setSectionGradeDistribution({});
+    }
+  }, [selectedSection, filteredSections, filteredStudents]);
 
   const customSelectStyles = {
     control: (base, state) => ({
@@ -230,6 +283,70 @@ function Dashboard({ loading, runs, groups, sections, students }) {
               </div>
             </div>
           </div>
+
+          {/* New Grade Distribution Visualization Section */}
+          <div className="grade-distribution-charts">
+            <h2>Grade Distribution Analysis</h2>
+            
+            <div className="grade-filter-controls">
+              <div className="filter-control">
+                <label htmlFor="group-select">Select Group:</label>
+                <Select
+                  id="group-select"
+                  className="group-select"
+                  styles={customSelectStyles}
+                  options={groupOptions}
+                  value={selectedGroup}
+                  onChange={(option) => setSelectedGroup(option)}
+                  isClearable
+                  placeholder="Select a Group"
+                  isDisabled={filteredGroups.length === 0}
+                />
+              </div>
+              
+              <div className="filter-control">
+                <label htmlFor="section-select">Select Section:</label>
+                <Select
+                  id="section-select"
+                  className="section-select"
+                  styles={customSelectStyles}
+                  options={sectionOptions}
+                  value={selectedSection}
+                  onChange={(option) => setSelectedSection(option)}
+                  isClearable
+                  placeholder="Select a Section"
+                  isDisabled={filteredSections.length === 0}
+                />
+              </div>
+            </div>
+            
+            <div className="charts-row">
+              {selectedGroup && selectedGroup.value && (
+                <div className="chart-container">
+                  <GradeDistributionChart 
+                    data={groupGradeDistribution} 
+                    title={`Grade Distribution for ${selectedGroup.label}`} 
+                  />
+                </div>
+              )}
+              
+              {selectedSection && selectedSection.value && (
+                <div className="chart-container">
+                  <GradeDistributionChart 
+                    data={sectionGradeDistribution} 
+                    title={`Grade Distribution for ${selectedSection.label}`} 
+                  />
+                </div>
+              )}
+              
+              {!selectedGroup?.value && !selectedSection?.value && (
+                <div className="no-chart-selected">
+                  <p>Please select a group or section to view grade distribution charts.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="dashboard-extra-stats">
             {/* Group Statistics */}
             <div className="chart-container">
@@ -294,7 +411,6 @@ function Dashboard({ loading, runs, groups, sections, students }) {
               </div>
             </div>
           </div>
-
         </>
       )}
     </div>
