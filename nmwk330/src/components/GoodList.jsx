@@ -19,18 +19,19 @@ function GoodList({ loading }) {
                                 groupedStudents.set(key, {
                                     student_id: student.student_id,
                                     student_name: student.student_name,
-                                    classes: new Set()
+                                    classes: new Map()
                                 });
                             }
-                            groupedStudents.get(key).classes.add(
-                                `${section.section_name} (${student.letter_grade})`
-                            );
+                            const classKey = `${section.section_name} (${student.letter_grade})`;
+                            if (!groupedStudents.get(key).classes.has(classKey)) {
+                                groupedStudents.get(key).classes.set(classKey, section.run_name);
+                            }
                         });
                 });
 
                 setSectionGrades(Array.from(groupedStudents.values()).map(student => ({
                     ...student,
-                    classes: Array.from(student.classes)
+                    classes: Array.from(student.classes.entries())
                 })));
             } catch (error) {
                 console.error("Error fetching good list data:", error);
@@ -53,6 +54,7 @@ function GoodList({ loading }) {
                             <th>ID</th>
                             <th>Name</th>
                             <th>Classes</th>
+                            <th>Run</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -61,8 +63,13 @@ function GoodList({ loading }) {
                                 <td>{student.student_id}</td>
                                 <td>{student.student_name}</td>
                                 <td>
-                                    {student.classes.map((cls, idx) => (
+                                    {student.classes.map(([cls, run], idx) => (
                                         <div key={idx}>{cls}</div>
+                                    ))}
+                                </td>
+                                <td>
+                                    {student.classes.map(([_, run], idx) => (
+                                        <div key={idx}>{run}</div>
                                     ))}
                                 </td>
                             </tr>

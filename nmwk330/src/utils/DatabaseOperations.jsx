@@ -49,15 +49,16 @@ export async function fetchAllStudents() {
       return null;
     }
   }
-  
+
 
 export async function fetchAllSections() {
   try {
     const db = await Database.load("sqlite:nmwk330.db");
     const result = await db.select(`
-      SELECT 
+      SELECT
         sec.section_id,
         sec.run_id,
+        r.name AS run_name, -- Include run_name
         sec.section_name,
         sec.credit_hours,
         sec.section_gpa,
@@ -66,8 +67,9 @@ export async function fetchAllSections() {
         g.letter_grade,
         g.numeric_grade
       FROM sections sec
-      LEFT JOIN grades g ON sec.section_id = g.section_id
-      LEFT JOIN students s ON g.student_id = s.student_id
+             LEFT JOIN runs r ON sec.run_id = r.run_id -- Join with runs to get run_name
+             LEFT JOIN grades g ON sec.section_id = g.section_id
+             LEFT JOIN students s ON g.student_id = s.student_id
       ORDER BY sec.section_id, s.student_id;
     `);
 
@@ -78,6 +80,7 @@ export async function fetchAllSections() {
         section = {
           section_id: row.section_id,
           run_id: row.run_id,
+          run_name: row.run_name, // Map run_name
           section_name: row.section_name,
           credit_hours: row.credit_hours,
           section_gpa: row.section_gpa,
